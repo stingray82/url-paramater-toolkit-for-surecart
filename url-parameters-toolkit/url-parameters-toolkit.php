@@ -2,10 +2,10 @@
 
 /**
  * Plugin Name:       URL  Paramaters ToolKit for SureCart
- * Description:       URL  Paramaters ToolKit for SureCart's plugin description
+ * Description:       Add URL Paramater Option(s) to SureCart
  * Requires at least: 6.5
  * Requires PHP:      7.4
- * Version:           1.34
+ * Version:           1.35
  * Author:            Reallyusefulplugins.com
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -73,14 +73,27 @@ function rup_sc_url_params_admin_page() {
     $choice_param_key    = get_option('rup_sc_url_params_choice_param_key', 'pricechoice');
     $choice_console_logs = get_option('rup_sc_url_params_choice_console_logs', '0');
 
+    // Retrieve Instant Checkout settings.
+    $enable_instant_checkout = get_option('rup_sc_enable_instant_checkout', '0');
+    $enable_debug_logs       = get_option('rup_sc_enable_debug_logs', '0');
+
     // Process General Settings update.
-    if ( isset($_POST['update_general_settings']) ) {
+    if (isset($_POST['update_general_settings'])) {
         $new_token_key = sanitize_text_field($_POST['token_key']);
         $new_baseurl   = esc_url_raw($_POST['baseurl']);
+        $new_enable_instant_checkout = isset($_POST['enable_instant_checkout']) ? '1' : '0';
+        $new_enable_debug_logs = isset($_POST['enable_debug_logs']) ? '1' : '0';
+
         update_option('rup_sc_url_params_price_token_key', $new_token_key);
         update_option('rup_sc_url_params_baseurl', $new_baseurl);
+        update_option('rup_sc_enable_instant_checkout', $new_enable_instant_checkout);
+        update_option('rup_sc_enable_debug_logs', $new_enable_debug_logs);
+
         $token_key = $new_token_key;
         $baseurl   = $new_baseurl;
+        $enable_instant_checkout = $new_enable_instant_checkout;
+        $enable_debug_logs = $new_enable_debug_logs;
+
         echo '<div class="updated"><p>General settings updated!</p></div>';
     }
 
@@ -136,7 +149,8 @@ function rup_sc_url_params_admin_page() {
 
     // Determine active tab.
     $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'pairs';
-
+    //$active_tab = isset($_GET['tab']) && in_array($_GET['tab'], ['pairs', 'choice', 'advanced']) ? $_GET['tab'] : 'pairs';
+    //Add New Tabs Below Here
     ?>
     <div class="wrap">
         <h1>URL Parameters for SureCart Settings</h1>
@@ -148,27 +162,34 @@ function rup_sc_url_params_admin_page() {
         <?php if ( $active_tab == 'pairs' ) : ?>
             <!-- General Settings Section -->
             <h2>General Settings</h2>
-            <form method="post">
+             <form method="post">
                 <table class="form-table">
                     <tr>
-                        <th scope="row">
-                            <label for="token_key">Price Token Parameter Key</label>
-                        </th>
+                        <th><label for="token_key">Price Token Parameter Key</label></th>
+                        <td><input type="text" name="token_key" id="token_key" value="<?php echo esc_attr($token_key); ?>" /></td>
+                    </tr>
+                    <tr>
+                        <th><label for="baseurl">Base URL</label></th>
+                        <td><input type="text" name="baseurl" id="baseurl" value="<?php echo esc_attr($baseurl); ?>" /></td>
+                    </tr>
+                </table>
+
+                <h2>These settings control Instant Checkout Only</h2>
+                <table class="form-table">
+                    <tr>
+                        <th>Enable Instant Checkout</th>
                         <td>
-                            <input type="text" name="token_key" id="token_key" value="<?php echo esc_attr($token_key); ?>" />
-                            <p class="description">This is the query parameter key that the Price JS and REST API will use. Default is "price_token".</p>
+                            <input type="checkbox" name="enable_instant_checkout" value="1" <?php checked($enable_instant_checkout, '1'); ?> />
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row">
-                            <label for="baseurl">Base URL</label>
-                        </th>
+                        <th>Enable Instant Checkout Debug</th>
                         <td>
-                            <input type="text" name="baseurl" id="baseurl" value="<?php echo esc_attr($baseurl); ?>" />
-                            <p class="description">Enter your site's base URL (e.g. https://example.com). Defaults to your site's home URL.</p>
+                            <input type="checkbox" name="enable_debug_logs" value="1" <?php checked($enable_debug_logs, '1'); ?> />
                         </td>
                     </tr>
                 </table>
+
                 <?php submit_button('Update General Settings', 'primary', 'update_general_settings'); ?>
             </form>
 
@@ -332,8 +353,10 @@ add_action('rest_api_init', function () {
     register_rest_route('custom/v1', '/price', [
         'methods'  => 'GET',
         'callback' => 'rup_sc_url_params_get_price',
+        'permission_callback' => '__return_true',
     ]);
 });
+
 function rup_sc_url_params_get_price(WP_REST_Request $request) {
     $pairs = get_option('rup_sc_url_params_pairs', []);
     $token_key = get_option('rup_sc_url_params_price_token_key', 'price_token');
@@ -412,54 +435,518 @@ function rup_sc_url_params_enqueue_custom_choice_inline_script() {
     
     $inline_choice_script = "
     document.addEventListener('DOMContentLoaded', function() {
-      const params = new URLSearchParams(window.location.search);
-      const choiceParam = params.get('" . esc_js($choice_param_key) . "');
-      if (!choiceParam) return;
-      const targetChoice = choiceParam.trim().toLowerCase();
-      var loggingEnabled = " . $choice_console_logs . ";
-      function log() { if (loggingEnabled) console.log.apply(console, arguments); }
-      
-      log('Looking for price choice:', targetChoice);
-      
-      function selectMatchingChoice() {
-        const choices = document.querySelectorAll('.sc-choice');
-        let matched = null;
-        choices.forEach(choice => {
-          const nameElem = choice.querySelector('.wp-block-surecart-price-name');
-          if (nameElem && nameElem.textContent.trim().toLowerCase() === targetChoice) {
-            matched = choice;
-          }
-        });
-        return matched;
-      }
-      
-      function isChoiceSelected(choice) {
-        return (choice.getAttribute('aria-checked') === 'true' ||
-                choice.classList.contains('sc-choice--checked'));
-      }
-      
-      function trySelectChoice() {
-        const match = selectMatchingChoice();
-        if (match) {
-          log('Match found for:', targetChoice);
-          match.click();
-          setTimeout(() => {
-            if (!isChoiceSelected(match)) {
-              log('Option not registered as selected; clicking again.');
-              match.click();
-            } else {
-              log(targetChoice, 'has been successfully selected.');
-            }
-          }, 300);
-        } else {
-          log('Matching option not yet available, retrying...');
-          setTimeout(trySelectChoice, 200);
+        const params = new URLSearchParams(window.location.search);
+        const choiceParam = params.get('" . esc_js($choice_param_key) . "');
+        if (!choiceParam) return;
+        const targetChoice = choiceParam.trim().toLowerCase();
+        var loggingEnabled = " . $choice_console_logs . ";
+        function log() { if (loggingEnabled) console.log.apply(console, arguments); }
+        
+        log('Looking for price choice:', targetChoice);
+        
+        function selectMatchingChoice() {
+            let matched = null;
+            let choices = document.querySelectorAll('.sc-choice, sc-choice-container');
+
+            choices.forEach(choice => {
+                let nameElem = choice.querySelector('.wp-block-surecart-price-name, .price-choice__name');
+                if (nameElem && nameElem.textContent.trim().toLowerCase() === targetChoice) {
+                    matched = choice;
+                }
+            });
+            return matched;
         }
-      }
-      
-      window.addEventListener('load', trySelectChoice);
+        
+        function isChoiceSelected(choice) {
+            return (choice.getAttribute('aria-checked') === 'true' ||
+                    choice.classList.contains('sc-choice--checked') ||
+                    choice.hasAttribute('checked'));
+        }
+        
+        function trySelectChoice() {
+            const match = selectMatchingChoice();
+            if (match) {
+                log('Match found for:', targetChoice);
+                match.click();
+                setTimeout(() => {
+                    if (!isChoiceSelected(match)) {
+                        log('Option not registered as selected; clicking again.');
+                        match.click();
+                    } else {
+                        log(targetChoice, 'has been successfully selected.');
+                    }
+                }, 300);
+            } else {
+                log('Matching option not yet available, retrying...');
+                setTimeout(trySelectChoice, 200);
+            }
+        }
+        
+        window.addEventListener('load', trySelectChoice);
     });
     ";
     wp_add_inline_script( 'rup-sc-url-params-inline-choice-script', $inline_choice_script );
 }
 add_action( 'wp_enqueue_scripts', 'rup_sc_url_params_enqueue_custom_choice_inline_script' );
+
+
+/*function rup_sc_instant_checkout_price_script() {
+    wp_register_script('rup-sc-instant-checkout-inline-script', '');
+    wp_enqueue_script('rup-sc-instant-checkout-inline-script');
+
+    $token_key = get_option('rup_sc_url_params_price_token_key', 'price_token');
+    $baseurl   = get_option('rup_sc_url_params_baseurl', home_url());
+
+    $inline_script = "
+    document.addEventListener('DOMContentLoaded', function() {
+        const tokenParam = '" . esc_js($token_key) . "';
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get(tokenParam);
+        if (!token) return;
+
+        function simulateClick(element) {
+            if (!element) return;
+            console.log('Simulating real user click on:', element);
+            element.focus();
+            element.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, view: window }));
+            element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, view: window }));
+            element.dispatchEvent(new KeyboardEvent('keydown', { key: \"Enter\", bubbles: true }));
+            element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        }
+
+        function hideChangeAmountButton() {
+            let changeAmountButton = document.querySelector(\"sc-product-selected-price\")
+                ?.shadowRoot?.querySelector(\"sc-button.selected-price__change-amount\");
+
+            if (changeAmountButton) {
+                console.log(\"Removing Change Amount button...\");
+                changeAmountButton.remove(); // Completely removes the button from the DOM
+            } else {
+                console.log(\"Change Amount button was not found or already removed.\");
+            }
+        }
+
+        function waitForUpdateButton() {
+            let checkExist = setInterval(() => {
+                let suffixSlot = document.querySelector(\"sc-product-selected-price\")
+                    ?.shadowRoot?.querySelector(\"sc-price-input\")
+                    ?.shadowRoot?.querySelector(\"slot[name='suffix']\");
+
+                if (!suffixSlot) {
+                    console.warn(\"Waiting for suffix slot to appear...\");
+                    return;
+                }
+
+                let assignedElements = suffixSlot.assignedElements();
+                if (!Array.isArray(assignedElements) || assignedElements.length === 0) {
+                    console.warn(\"No assigned elements found in slot[name='suffix']. Retrying...\");
+                    return;
+                }
+
+                let updateButton = assignedElements.find(el => el.tagName === \"SC-BUTTON\");
+
+                if (updateButton) {
+                    clearInterval(checkExist);
+                    console.log(\"Clicking Update button...\");
+                    updateButton.removeAttribute(\"aria-disabled\");
+
+                    simulateClick(updateButton);
+                    console.log(\"Update button clicked!\");
+                    
+                    // Ensure the Change Amount button is removed
+                    setTimeout(hideChangeAmountButton, 1000);
+                } else {
+                    console.warn(\"Waiting for Update button to appear...\");
+                }
+            }, 200);
+
+            setTimeout(() => clearInterval(checkExist), 5000);
+        }
+
+        function waitForPriceInput(fixedPrice) {
+            let checkExist = setInterval(() => {
+                let priceInput = document.querySelector(\"sc-product-selected-price\")
+                    ?.shadowRoot?.querySelector(\"sc-price-input\")
+                    ?.shadowRoot?.querySelector(\"sc-input\")
+                    ?.shadowRoot?.querySelector(\"input\");
+
+                if (priceInput) {
+                    clearInterval(checkExist);
+                    console.log(\"Price input field found! Clicking it first...\");
+                    
+                    priceInput.focus();
+                    priceInput.dispatchEvent(new PointerEvent(\"pointerdown\", { bubbles: true, cancelable: true, view: window }));
+                    priceInput.dispatchEvent(new PointerEvent(\"pointerup\", { bubbles: true, cancelable: true, view: window }));
+
+                    priceInput.value = fixedPrice;
+                    priceInput.readOnly = true;
+                    priceInput.dispatchEvent(new Event(\"input\", { bubbles: true }));
+                    priceInput.dispatchEvent(new Event(\"change\", { bubbles: true }));
+
+                    console.log(\"Price updated successfully:\", fixedPrice);
+
+                    setTimeout(waitForUpdateButton, 1000);
+                } else {
+                    console.warn(\"Waiting for price input field to appear...\");
+                }
+            }, 200);
+
+            setTimeout(() => clearInterval(checkExist), 5000);
+        }
+
+        function findAndClickChangeAmount(fixedPrice) {
+            let checkExist = setInterval(() => {
+                let changeAmountButton = document.querySelector(\"sc-product-selected-price\")
+                    ?.shadowRoot?.querySelector(\"sc-button.selected-price__change-amount\");
+
+                if (changeAmountButton) {
+                    clearInterval(checkExist);
+                    console.log(\"Clicking the Change Amount button...\");
+                    simulateClick(changeAmountButton);
+                    setTimeout(() => waitForPriceInput(fixedPrice), 1000);
+                } else {
+                    console.warn(\"Waiting for Change Amount button to appear...\");
+                }
+            }, 200);
+
+            setTimeout(() => clearInterval(checkExist), 5000);
+        }
+
+        fetch('" . esc_js($baseurl) . "/wp-json/custom/v1/price?' + tokenParam + '=' + encodeURIComponent(token))
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.price) {
+                    const priceValue = parseFloat(data.price);
+                    if (!isNaN(priceValue)) {
+                        const fixedPrice = priceValue.toFixed(2);
+                        findAndClickChangeAmount(fixedPrice);
+                    }
+                } else {
+                    console.error(\"Invalid token or no price returned.\");
+                }
+            })
+            .catch(error => {
+                console.error(\"Error fetching price:\", error);
+            });
+    });
+    ";
+
+    wp_add_inline_script('rup-sc-instant-checkout-inline-script', $inline_script);
+}
+add_action('wp_enqueue_scripts', 'rup_sc_instant_checkout_price_script');*/
+
+/*/// This is updated to work with th enew options //
+function rup_sc_instant_checkout_price_script() {
+    $enable_instant_checkout = get_option('rup_sc_enable_instant_checkout', '0');
+    $enable_debug_logs       = get_option('rup_sc_enable_debug_logs', '0');
+
+    // If Instant Checkout is disabled, don't enqueue script
+    if ($enable_instant_checkout !== '1') {
+        return;
+    }
+
+    wp_register_script('rup-sc-instant-checkout-inline-script', '');
+    wp_enqueue_script('rup-sc-instant-checkout-inline-script');
+
+    $token_key = get_option('rup_sc_url_params_price_token_key', 'price_token');
+    $baseurl   = get_option('rup_sc_url_params_baseurl', home_url());
+
+    $inline_script = "
+    document.addEventListener('DOMContentLoaded', function() {
+        const tokenParam = '" . esc_js($token_key) . "';
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get(tokenParam);
+        if (!token) return;
+
+        function simulateClick(element) {
+            if (!element) return;
+            " . ($enable_debug_logs === '1' ? "console.log('Simulating real user click on:', element);" : "") . "
+            element.focus();
+            element.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, view: window }));
+            element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, view: window }));
+            element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        }
+
+        function hideChangeAmountButton() {
+            let changeAmountButton = document.querySelector(\"sc-product-selected-price\")
+                ?.shadowRoot?.querySelector(\"sc-button.selected-price__change-amount\");
+
+            if (changeAmountButton) {
+                " . ($enable_debug_logs === '1' ? "console.log('Removing Change Amount button...');" : "") . "
+                changeAmountButton.remove(); // Completely removes the button from the DOM
+            } else {
+                " . ($enable_debug_logs === '1' ? "console.log('Change Amount button was not found or already removed.');" : "") . "
+            }
+        }
+
+        function waitForUpdateButton() {
+            let checkExist = setInterval(() => {
+                let suffixSlot = document.querySelector(\"sc-product-selected-price\")
+                    ?.shadowRoot?.querySelector(\"sc-price-input\")
+                    ?.shadowRoot?.querySelector(\"slot[name='suffix']\");
+
+                if (!suffixSlot) {
+                    " . ($enable_debug_logs === '1' ? "console.warn('Waiting for suffix slot to appear...');" : "") . "
+                    return;
+                }
+
+                let assignedElements = suffixSlot.assignedElements();
+                if (!Array.isArray(assignedElements) || assignedElements.length === 0) {
+                    " . ($enable_debug_logs === '1' ? "console.warn('No assigned elements found in slot[name=\'suffix\']. Retrying...');" : "") . "
+                    return;
+                }
+
+                let updateButton = assignedElements.find(el => el.tagName === \"SC-BUTTON\");
+
+                if (updateButton) {
+                    clearInterval(checkExist);
+                    " . ($enable_debug_logs === '1' ? "console.log('Clicking Update button...');" : "") . "
+                    updateButton.removeAttribute(\"aria-disabled\");
+
+                    simulateClick(updateButton);
+                    " . ($enable_debug_logs === '1' ? "console.log('Update button clicked!');" : "") . "
+                    
+                    setTimeout(hideChangeAmountButton, 1000);
+                } else {
+                    " . ($enable_debug_logs === '1' ? "console.warn('Waiting for Update button to appear...');" : "") . "
+                }
+            }, 200);
+
+            setTimeout(() => clearInterval(checkExist), 5000);
+        }
+
+        function waitForPriceInput(fixedPrice) {
+            let checkExist = setInterval(() => {
+                let priceInput = document.querySelector(\"sc-product-selected-price\")
+                    ?.shadowRoot?.querySelector(\"sc-price-input\")
+                    ?.shadowRoot?.querySelector(\"sc-input\")
+                    ?.shadowRoot?.querySelector(\"input\");
+
+                if (priceInput) {
+                    clearInterval(checkExist);
+                    " . ($enable_debug_logs === '1' ? "console.log('Price input field found! Clicking it first...');" : "") . "
+                    
+                    priceInput.focus();
+                    priceInput.dispatchEvent(new PointerEvent(\"pointerdown\", { bubbles: true, cancelable: true, view: window }));
+                    priceInput.dispatchEvent(new PointerEvent(\"pointerup\", { bubbles: true, cancelable: true, view: window }));
+
+                    priceInput.value = fixedPrice;
+                    priceInput.readOnly = true;
+                    priceInput.dispatchEvent(new Event(\"input\", { bubbles: true }));
+                    priceInput.dispatchEvent(new Event(\"change\", { bubbles: true }));
+
+                    " . ($enable_debug_logs === '1' ? "console.log('Price updated successfully:', fixedPrice);" : "") . "
+
+                    setTimeout(waitForUpdateButton, 1000);
+                } else {
+                    " . ($enable_debug_logs === '1' ? "console.warn('Waiting for price input field to appear...');" : "") . "
+                }
+            }, 200);
+
+            setTimeout(() => clearInterval(checkExist), 5000);
+        }
+
+        function findAndClickChangeAmount(fixedPrice) {
+            let checkExist = setInterval(() => {
+                let changeAmountButton = document.querySelector(\"sc-product-selected-price\")
+                    ?.shadowRoot?.querySelector(\"sc-button.selected-price__change-amount\");
+
+                if (changeAmountButton) {
+                    clearInterval(checkExist);
+                    " . ($enable_debug_logs === '1' ? "console.log('Clicking the Change Amount button...');" : "") . "
+                    simulateClick(changeAmountButton);
+                    setTimeout(() => waitForPriceInput(fixedPrice), 1000);
+                } else {
+                    " . ($enable_debug_logs === '1' ? "console.warn('Waiting for Change Amount button to appear...');" : "") . "
+                }
+            }, 200);
+
+            setTimeout(() => clearInterval(checkExist), 5000);
+        }
+
+        fetch('" . esc_js($baseurl) . "/wp-json/custom/v1/price?' + tokenParam + '=' + encodeURIComponent(token))
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.price) {
+                    const priceValue = parseFloat(data.price);
+                    if (!isNaN(priceValue)) {
+                        const fixedPrice = priceValue.toFixed(2);
+                        findAndClickChangeAmount(fixedPrice);
+                    }
+                } else {
+                    console.error(\"Invalid token or no price returned.\");
+                }
+            })
+            .catch(error => {
+                console.error(\"Error fetching price:\", error);
+            });
+    });
+    ";
+
+    wp_add_inline_script('rup-sc-instant-checkout-inline-script', $inline_script);
+}
+add_action('wp_enqueue_scripts', 'rup_sc_instant_checkout_price_script'); */
+
+function rup_sc_instant_checkout_price_script() {
+    $enable_instant_checkout = get_option('rup_sc_enable_instant_checkout', '0');
+    $enable_debug_logs       = get_option('rup_sc_enable_debug_logs', '0');
+
+    // If Instant Checkout is disabled, don't enqueue script
+    if ($enable_instant_checkout !== '1') {
+        return;
+    }
+
+    wp_register_script('rup-sc-instant-checkout-inline-script', '');
+    wp_enqueue_script('rup-sc-instant-checkout-inline-script');
+
+    $token_key = get_option('rup_sc_url_params_price_token_key', 'price_token');
+    $baseurl   = get_option('rup_sc_url_params_baseurl', home_url());
+
+    $inline_script = "
+    document.addEventListener('DOMContentLoaded', function() {
+        const tokenParam = '" . esc_js($token_key) . "';
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get(tokenParam);
+        if (!token) return;
+
+        function simulateClick(element) {
+            if (!element) return;
+            " . ($enable_debug_logs === '1' ? "console.log('Simulating real user click on:', element);" : "") . "
+            element.focus();
+            element.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, view: window }));
+            element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, view: window }));
+            element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        }
+
+        function hideChangeAmountButton() {
+            let checkExist = setInterval(() => {
+                let changeAmountButton = document.querySelector(\"sc-product-selected-price\")
+                    ?.shadowRoot?.querySelector(\"sc-button.selected-price__change-amount\");
+
+                if (changeAmountButton) {
+                    " . ($enable_debug_logs === '1' ? "console.log('Removing Change Amount button...');" : "") . "
+                    changeAmountButton.remove();
+                    clearInterval(checkExist); // Stop checking after removal
+                } else {
+                    " . ($enable_debug_logs === '1' ? "console.warn('Change Amount button was not found or already removed.');" : "") . "
+                }
+            }, 200);
+        }
+
+        function observeDOMChanges() {
+            const targetNode = document.querySelector('sc-product-selected-price');
+            if (!targetNode) return;
+
+            const observer = new MutationObserver(() => {
+                hideChangeAmountButton();
+            });
+
+            observer.observe(targetNode, { childList: true, subtree: true });
+        }
+
+        function waitForUpdateButton() {
+            let checkExist = setInterval(() => {
+                let suffixSlot = document.querySelector(\"sc-product-selected-price\")
+                    ?.shadowRoot?.querySelector(\"sc-price-input\")
+                    ?.shadowRoot?.querySelector(\"slot[name='suffix']\");
+
+                if (!suffixSlot) {
+                    " . ($enable_debug_logs === '1' ? "console.warn('Waiting for suffix slot to appear...');" : "") . "
+                    return;
+                }
+
+                let assignedElements = suffixSlot.assignedElements();
+                if (!Array.isArray(assignedElements) || assignedElements.length === 0) {
+                    " . ($enable_debug_logs === '1' ? "console.warn('No assigned elements found in slot[name=\'suffix\']. Retrying...');" : "") . "
+                    return;
+                }
+
+                let updateButton = assignedElements.find(el => el.tagName === \"SC-BUTTON\");
+
+                if (updateButton) {
+                    clearInterval(checkExist);
+                    " . ($enable_debug_logs === '1' ? "console.log('Clicking Update button...');" : "") . "
+                    updateButton.removeAttribute(\"aria-disabled\");
+
+                    simulateClick(updateButton);
+                    " . ($enable_debug_logs === '1' ? "console.log('Update button clicked!');" : "") . "
+
+                    setTimeout(hideChangeAmountButton, 1000);
+                } else {
+                    " . ($enable_debug_logs === '1' ? "console.warn('Waiting for Update button to appear...');" : "") . "
+                }
+            }, 200);
+        }
+
+        function waitForPriceInput(fixedPrice) {
+            let checkExist = setInterval(() => {
+                let priceInput = document.querySelector(\"sc-product-selected-price\")
+                    ?.shadowRoot?.querySelector(\"sc-price-input\")
+                    ?.shadowRoot?.querySelector(\"sc-input\")
+                    ?.shadowRoot?.querySelector(\"input\");
+
+                if (priceInput) {
+                    clearInterval(checkExist);
+                    " . ($enable_debug_logs === '1' ? "console.log('Price input field found! Clicking it first...');" : "") . "
+                    
+                    priceInput.focus();
+                    priceInput.dispatchEvent(new PointerEvent(\"pointerdown\", { bubbles: true, cancelable: true, view: window }));
+                    priceInput.dispatchEvent(new PointerEvent(\"pointerup\", { bubbles: true, cancelable: true, view: window }));
+
+                    priceInput.value = fixedPrice;
+                    priceInput.readOnly = true;
+                    priceInput.dispatchEvent(new Event(\"input\", { bubbles: true }));
+                    priceInput.dispatchEvent(new Event(\"change\", { bubbles: true }));
+
+                    " . ($enable_debug_logs === '1' ? "console.log('Price updated successfully:', fixedPrice);" : "") . "
+
+                    setTimeout(waitForUpdateButton, 1000);
+                } else {
+                    " . ($enable_debug_logs === '1' ? "console.warn('Waiting for price input field to appear...');" : "") . "
+                }
+            }, 200);
+        }
+
+        function findAndClickChangeAmount(fixedPrice) {
+            let checkExist = setInterval(() => {
+                let changeAmountButton = document.querySelector(\"sc-product-selected-price\")
+                    ?.shadowRoot?.querySelector(\"sc-button.selected-price__change-amount\");
+
+                if (changeAmountButton) {
+                    clearInterval(checkExist);
+                    " . ($enable_debug_logs === '1' ? "console.log('Clicking the Change Amount button...');" : "") . "
+                    simulateClick(changeAmountButton);
+                    setTimeout(() => waitForPriceInput(fixedPrice), 1000);
+                } else {
+                    " . ($enable_debug_logs === '1' ? "console.warn('Waiting for Change Amount button to appear...');" : "") . "
+                }
+            }, 200);
+        }
+
+        fetch('" . esc_js($baseurl) . "/wp-json/custom/v1/price?' + tokenParam + '=' + encodeURIComponent(token))
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.price) {
+                    const priceValue = parseFloat(data.price);
+                    if (!isNaN(priceValue)) {
+                        const fixedPrice = priceValue.toFixed(2);
+                        findAndClickChangeAmount(fixedPrice);
+                    }
+                } else {
+                    console.error(\"Invalid token or no price returned.\");
+                }
+            })
+            .catch(error => {
+                console.error(\"Error fetching price:\", error);
+            });
+
+        // Start monitoring the DOM for changes to ensure Change Amount button stays hidden
+        observeDOMChanges();
+    });
+    ";
+
+    wp_add_inline_script('rup-sc-instant-checkout-inline-script', $inline_script);
+}
+add_action('wp_enqueue_scripts', 'rup_sc_instant_checkout_price_script');
