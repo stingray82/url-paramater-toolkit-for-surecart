@@ -449,8 +449,8 @@ function rup_sc_url_params_enqueue_custom_choice_inline_script() {
         
         function selectMatchingChoice() {
             let matched = null;
+            // Ensure to select proper elements; adjust selectors if needed.
             let choices = document.querySelectorAll('.sc-choice, sc-choice-container');
-
             choices.forEach(choice => {
                 let nameElem = choice.querySelector('.wp-block-surecart-price-name, .price-choice__name');
                 if (nameElem && nameElem.textContent.trim().toLowerCase() === targetChoice) {
@@ -466,7 +466,13 @@ function rup_sc_url_params_enqueue_custom_choice_inline_script() {
                     choice.hasAttribute('checked'));
         }
         
-        function trySelectChoice() {
+        // trySelectChoice with limited attempts
+        function trySelectChoice(attempts) {
+            attempts = attempts || 0;
+            if (attempts > 5) {
+                log('Max attempts reached. Giving up.');
+                return;
+            }
             const match = selectMatchingChoice();
             if (match) {
                 log('Match found for:', targetChoice);
@@ -479,18 +485,23 @@ function rup_sc_url_params_enqueue_custom_choice_inline_script() {
                         log(targetChoice, 'has been successfully selected.');
                     }
                 }, 300);
+                // Stop further retries once a match is found.
             } else {
-                log('Matching option not yet available, retrying...');
-                setTimeout(trySelectChoice, 200);
+                log('Matching option not yet available, retrying (attempt ' + (attempts+1) + ')...');
+                setTimeout(() => trySelectChoice(attempts + 1), 200);
             }
         }
         
-        window.addEventListener('load', trySelectChoice);
+        // Delay the auto-selection until fully loaded (2 seconds after window load)
+        window.addEventListener('load', function() {
+            setTimeout(trySelectChoice, 2000);
+        });
     });
     ";
     wp_add_inline_script( 'rup-sc-url-params-inline-choice-script', $inline_choice_script );
 }
 add_action( 'wp_enqueue_scripts', 'rup_sc_url_params_enqueue_custom_choice_inline_script' );
+
 
 
 function rup_sc_instant_checkout_price_script() {
