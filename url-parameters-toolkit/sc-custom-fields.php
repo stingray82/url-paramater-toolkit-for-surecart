@@ -6,7 +6,7 @@
  *   - Provides an admin UI for managing URL parameter → SC-Input name mappings.
  *     (The admin only enters the SC-Input's name attribute value; the plugin builds a valid selector.)
  *   - Adds admin inline JavaScript that fixes edit/cancel buttons, repositions the custom fields content,
- *     and cleans up the URL.
+ *     cleans up the URL, and adds a random token generator button (with a "cf" prefix) for the URL parameter key input.
  *   - Enqueues front‑end inline JavaScript that maps URL parameters to custom fields,
  *     including special handling for SureCart <sc-input> components.
  *   - Enqueues a custom stylesheet (fields.css) located in inc/css/fields.css.
@@ -28,11 +28,10 @@ add_action( 'wp_enqueue_scripts', 'sccf_enqueue_styles' );
 /**
  * ADMIN INLINE SCRIPT
  * This script runs on the toolkit settings page (page=sc-url-parms) and:
- * - Safely attaches the random-token generator.
+ * - Safely attaches the random-token generators.
  * - Enables inline editing for pricing pairs and custom field mappings.
  * - Appends a new "Custom Fields" tab link to the nav-tab wrapper.
- * - If the active tab is "custom_fields", repositions the custom fields content container
- *   so that it appears in the same area as the other tab contents.
+ * - If the active tab is "custom_fields", repositions its content.
  * - Cleans up the URL (preserving only 'page' and 'tab' parameters).
  */
 function sccf_admin_inline_script() {
@@ -41,7 +40,7 @@ function sccf_admin_inline_script() {
         <script>
         document.addEventListener('DOMContentLoaded', function() {
 
-            // Safely attach to the "Generate Random Token" button.
+            // Attach to the "Generate Random Token" button for pricing pairs.
             const randomTokenBtn = document.getElementById('generate_random_token');
             if (randomTokenBtn) {
                 randomTokenBtn.addEventListener('click', function(e) {
@@ -49,6 +48,19 @@ function sccf_admin_inline_script() {
                     const tokenField = document.getElementById('new_token');
                     if (tokenField) {
                         tokenField.value = Math.random().toString(36).substring(2, 12);
+                    }
+                });
+            }
+
+            // NEW: Attach to the random token generator button for custom fields.
+            const randomCFTbtn = document.getElementById('generate_random_cf_token');
+            if (randomCFTbtn) {
+                randomCFTbtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const cfField = document.getElementById('new_param');
+                    if (cfField) {
+                        // Prefix with "cf" and generate a random string.
+                        cfField.value = 'cf' + Math.random().toString(36).substring(2, 10);
                     }
                 });
             }
@@ -116,13 +128,10 @@ function sccf_admin_inline_script() {
             // If the custom_fields tab is active, reposition its content.
             const params = new URLSearchParams(window.location.search);
             if (params.get('tab') === 'custom_fields') {
-                // Assume the main admin page has a container with class "wrap"
-                // and the nav tabs are inside an element with class "nav-tab-wrapper".
                 const wrap = document.querySelector('.wrap');
                 const navWrapper = document.querySelector('.nav-tab-wrapper');
                 const customContent = document.getElementById('custom-fields-tab-content');
                 if (wrap && navWrapper && customContent) {
-                    // Insert our custom fields content immediately after the nav tabs.
                     navWrapper.parentNode.insertBefore(customContent, navWrapper.nextSibling);
                 }
             }
@@ -204,7 +213,10 @@ function sccf_render_custom_fields_admin_ui() {
                 <table class="form-table">
                     <tr>
                         <th scope="row"><label for="new_param">URL Parameter Key</label></th>
-                        <td><input type="text" name="new_param" id="new_param" value="" /></td>
+                        <td>
+                            <input type="text" name="new_param" id="new_param" value="" />
+                            <button type="button" id="generate_random_cf_token" class="button">Generate Random Token</button>
+                        </td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="new_field_selector">SC-Input Name Attribute</label></th>
