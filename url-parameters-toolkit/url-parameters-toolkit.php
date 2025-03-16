@@ -5,7 +5,7 @@
  * Description:       Add URL Paramater Option(s) to SureCart
  * Requires at least: 6.5
  * Requires PHP:      7.4
- * Version:           1.35
+ * Version:           1.36a
  * Author:            Reallyusefulplugins.com
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -32,6 +32,9 @@ define($plugin_prefix . '_CACHE_KEY', 'url_paramaters_toolkit_for_sure-cache-key
 define($plugin_prefix . '_REMOTE_URL', 'https://reallyusefulplugins.com/wp-content/uploads/downloads/641/info.json');
 
 require constant($plugin_prefix . '_PATH') . 'inc/update.php';
+require_once constant($plugin_prefix . '_PATH') . 'sc-custom-fields.php';
+
+
 
 new DPUpdateChecker(
     constant($plugin_prefix . '_BASE'),
