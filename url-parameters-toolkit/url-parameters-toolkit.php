@@ -2,17 +2,19 @@
 
 /**
  * Plugin Name:       URL  Paramaters ToolKit for SureCart
+ * Tested up to:      6.7.2
  * Description:       Add URL Paramater Option(s) to SureCart
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Version:           1.36a
  * Author:            Reallyusefulplugins.com
+ * Author URI:        https://reallyusefulplugins.com
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       url_paramaters_toolkit_for_sure
  * Website:           https://reallyusefulplugins.com
- * (C) Nathan Foley
- */
+ * */
+
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
