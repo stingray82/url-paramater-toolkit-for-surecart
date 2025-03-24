@@ -1,52 +1,79 @@
 <?php
 
 /**
- * Plugin Name:       URL  Paramaters ToolKit for SureCart
- * Tested up to:      6.7.2
- * Description:       Add URL Paramater Option(s) to SureCart
- * Requires at least: 6.5
- * Requires PHP:      7.4
- * Version:           1.36a
- * Author:            Reallyusefulplugins.com
- * Author URI:        https://reallyusefulplugins.com
- * License:           GPL-2.0-or-later
- * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       url_paramaters_toolkit_for_sure
- * Website:           https://reallyusefulplugins.com
- * */
-
-
+ * Plugin Name:         URL  Paramaters ToolKit for SureCart
+ * Description:         Add URL Paramater Option(s) to SureCart
+ * Tested up to:        6.7.2
+ * Requires at least:   6.5
+ * Requires PHP:        7.4
+ * Version:             1.37
+ * Author:              Reallyusefulplugins.com
+ * Author URI:          https://reallyusefulplugins.com
+ * License:             GPL-2.0-or-later
+ * License URI:         https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:         url-parameters-toolkit
+ * Website:             https://reallyusefulplugins.com
+ */
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-$plugin_prefix = 'URLPARAMATERSTOOLKITFORSURE';
 
-// Extract the version number
-$plugin_data = get_file_data(__FILE__, ['Version' => 'Version']);
+function rup_url_paramaters_toolkit_sc_initialize_plugin_update_checker() {
+    // Ensure the required function is available.
+    if ( ! function_exists( 'get_plugin_data' ) ) {
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+    // Get the plugin data from the header.
+    $plugin_data = get_plugin_data( __FILE__ );
+    
+    // Build the constant name prefix using the Text Domain.
+    $prefix = 'rup_' . $plugin_data['TextDomain'];
 
-// Plugin Constants
-define($plugin_prefix . '_DIR', plugin_basename(__DIR__));
-define($plugin_prefix . '_BASE', plugin_basename(__FILE__));
-define($plugin_prefix . '_PATH', plugin_dir_path(__FILE__));
-define($plugin_prefix . '_VER', $plugin_data['Version']);
-define($plugin_prefix . '_CACHE_KEY', 'url_paramaters_toolkit_for_sure-cache-key-for-plugin');
-define($plugin_prefix . '_REMOTE_URL', 'https://reallyusefulplugins.com/wp-content/uploads/downloads/641/info.json');
+    // Define the constants and their corresponding values.
+    $constants = array(
+        '_version'         => $plugin_data['Version'],
+        '_slug'            => $plugin_data['TextDomain'],
+        '_main_file'       => __FILE__,
+        '_dir'             => plugin_dir_path( __FILE__ ),
+        '_url'             => plugin_dir_url( __FILE__ ),
+        '_access_key'      => 'XMMsqFoMn2CkGnburCC8kZVsaUDqZMozZ',
+        '_server_location' => 'https://updater.reallyusefulplugins.com/u/'
+    );
 
-require constant($plugin_prefix . '_PATH') . 'inc/update.php';
-require_once constant($plugin_prefix . '_PATH') . 'sc-custom-fields.php';
+    // Loop through the array and define each constant dynamically.
+    foreach ( $constants as $suffix => $value ) {
+        if ( ! defined( $prefix . $suffix ) ) {
+            define( $prefix . $suffix, $value );
+        }
+    }
+
+    // Retrieve the dynamic constants for easier reference.
+    $version         = constant($prefix . '_version');
+    $slug            = constant($prefix . '_slug');
+    $main_file       = constant($prefix . '_main_file');
+    $dir             = constant($prefix . '_dir');
+    $url             = constant($prefix . '_url');
+    $access_key      = constant($prefix . '_access_key');
+    $server_location = constant($prefix . '_server_location');
+
+    // Build the update server URL dynamically.
+    $updateserver = $server_location . '?key=' . $access_key . '&action=get_metadata&slug=' . $slug;
+
+    // Include the update checker.
+    require_once $dir . 'plugin-update-checker/plugin-update-checker.php';
+
+    // Use the fully qualified class name to build the update checker.
+    $my_plugin_update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+        $updateserver,
+        $main_file,
+        $slug
+    );
+}
+
+add_action( 'init', 'rup_url_paramaters_toolkit_sc_initialize_plugin_update_checker' );
 
 
-
-new DPUpdateChecker(
-    constant($plugin_prefix . '_BASE'),
-    constant($plugin_prefix . '_VER'),
-    constant($plugin_prefix . '_CACHE_KEY'),
-    constant($plugin_prefix . '_REMOTE_URL'),
-);
-
-// Update Checker Above this Line 
-// Exit if accessed directly.
 
 /**
  * Add the URL Parameters settings page under Settings.
