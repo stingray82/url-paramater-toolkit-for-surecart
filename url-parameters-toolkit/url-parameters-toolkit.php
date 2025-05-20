@@ -3,10 +3,10 @@
 /**
  * Plugin Name:         URL  Paramaters ToolKit for SureCart
  * Description:         Add URL Paramater Option(s) to SureCart
- * Tested up to:        6.7.2
+ * Tested up to:        6.8.1
  * Requires at least:   6.5
- * Requires PHP:        7.4
- * Version:             1.37
+ * Requires PHP:        8.0
+ * Version:             1.39
  * Author:              Reallyusefulplugins.com
  * Author URI:          https://reallyusefulplugins.com
  * License:             GPL-2.0-or-later

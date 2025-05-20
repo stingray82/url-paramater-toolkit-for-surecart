@@ -22,10 +22,17 @@ Add URL Paramater Option(s) to SureCart
 Yes Url Paramaters Toolkit for SureCart is a Free Plugin
 
 == Changelog ==
-= 1.37(24 March 2025) =
+= 1.39 (20 May 2025) =
+Tweaked: Dynamic Mapping to fix error report
+
+= 1.38 (05 May 2025) =
+Tweaked: Dynamic Mapping
+Fixed: Issue with some Installs of 6.8.1
+
+= 1.37 (24 March 2025) =
 New: Automatic Updater
 Tweaked:  This is a tweaked version of 1.36 after beta feedback
-Improved: Enhanced integration with SureCart for seamless parameter tracking
+Improvement: Enhanced integration with SureCart for seamless parameter tracking
 Fixed: Corrected issues with parameter encoding for special characters
 New: Added support for multiple URL parameters and dynamic mapping
 
