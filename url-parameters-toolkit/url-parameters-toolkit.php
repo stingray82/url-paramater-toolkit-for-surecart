@@ -1,18 +1,18 @@
 <?php
 
 /**
- * Plugin Name:         URL  Paramaters ToolKit for SureCart
- * Description:         Add URL Paramater Option(s) to SureCart
- * Tested up to:        6.8.1
- * Requires at least:   6.5
- * Requires PHP:        8.0
- * Version:             1.39
- * Author:              Reallyusefulplugins.com
- * Author URI:          https://reallyusefulplugins.com
- * License:             GPL-2.0-or-later
- * License URI:         https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:         url-parameters-toolkit
- * Website:             https://reallyusefulplugins.com
+ * Plugin Name:       URL  Paramaters ToolKit for SureCart
+ * Description:       Add URL Paramater Option(s) to SureCart
+ * Tested up to:      6.8.1
+ * Requires at least: 6.5
+ * Requires PHP:      8.0
+ * Version:           1.39
+ * Author:            Reallyusefulplugins.com
+ * Author URI:        https://reallyusefulplugins.com
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       url-parameters-toolkit
+ * Website:           https://reallyusefulplugins.com
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
