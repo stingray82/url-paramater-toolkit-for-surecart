@@ -14,6 +14,7 @@
  * Text Domain:         url-parameters-toolkit
  * Website:             https://reallyusefulplugins.com
  */
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
