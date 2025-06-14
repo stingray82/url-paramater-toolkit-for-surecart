@@ -9,19 +9,24 @@ Requires PHP: 8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
+Add URL Paramater Option(s) to SureCart
+
 == Description ==
+
 Add URL Paramater Option(s) to SureCart
 
 == Installation ==
+
 1. Upload the url-paramaters-toolkit` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 3. You will now have a new menu area to add and modify your parameters 
 
 == Frequently Asked Questions ==
+
 = Is it a Free Plugin =
 Yes Url Paramaters Toolkit for SureCart is a Free Plugin
-
-== Changelog ==
+ 
+== Changelog == 
 = 1.39 (20 May 2025) =
 Tweaked: Dynamic Mapping to fix error report
 
