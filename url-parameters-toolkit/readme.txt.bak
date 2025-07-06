@@ -4,7 +4,7 @@ Donate link: https://reallyusefulplugins.com/donate
 Tags: surecart, url, Paramaters, ecommerce
 Requires at least: 6.5
 Tested up to: 6.8.1
-Stable tag: 1.39.3
+Stable tag: 1.4
 Requires PHP: 8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -27,6 +27,9 @@ Add URL Paramater Option(s) to SureCart
 Yes Url Paramaters Toolkit for SureCart is a Free Plugin
  
 == Changelog == 
+= 1.4 21 June 2025 =
+New: Updates Now served directly from GitHub using UUPD
+
 = 1.39 (20 May 2025) =
 Tweaked: Dynamic Mapping to fix error report
 
