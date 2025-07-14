@@ -27,6 +27,10 @@ Add URL Paramater Option(s) to SureCart
 Yes Url Paramaters Toolkit for SureCart is a Free Plugin
  
 == Changelog == 
+= 1.4.1 06 July 2025 =
+New: Rescoped RUP_UUPD
+Update: UUPD 1.2.4
+
 = 1.4 21 June 2025 =
 New: Updates Now served directly from GitHub using UUPD
 
