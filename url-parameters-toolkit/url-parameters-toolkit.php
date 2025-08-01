@@ -6,7 +6,7 @@
  * Tested up to:      6.8.2
  * Requires at least: 6.5
  * Requires PHP:      8.0
- * Version:           1.4.3
+ * Version:           1.5
  * Author:            Reallyusefulplugins.com
  * Author URI:        https://reallyusefulplugins.com
  * License:           GPL-2.0-or-later
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-define('RUP_SC_URLPAR_VERSION', '1.4.3');
+define('RUP_SC_URLPAR_VERSION', '1.5');
 
 // ──────────────────────────────────────────────────────────────────────────
 //  Updater bootstrap (plugins_loaded priority 1):
@@ -43,6 +43,10 @@ add_action( 'plugins_loaded', function() {
     \RUP\Updater\Updater_V1::register( $updater_config );
 }, 20 );
 
+
+
+// Load Custom Fields
+require_once __DIR__ . '/sc-custom-fields.php';
 
 /**
  * Add the URL Parameters settings page under Settings.
@@ -664,3 +668,15 @@ function rup_sc_instant_checkout_price_script() {
     wp_add_inline_script('rup-sc-instant-checkout-inline-script', $inline_script);
 }
 add_action('wp_enqueue_scripts', 'rup_sc_instant_checkout_price_script');
+
+
+// MainWP Icon Filter
+add_filter('mainwp_child_stats_get_plugin_info', function($info, $slug) {
+
+    if ('rup-changelogger/rup-changelogger.php' === $slug) {
+        $info['icon'] = 'https://raw.githubusercontent.com/stingray82/url-paramater-toolkit-for-surecart/main/uupd/icon-128.png'; // Supported types: jpeg, jpg, gif, ico, png
+    }
+
+    return $info;
+
+}, 10, 2);
