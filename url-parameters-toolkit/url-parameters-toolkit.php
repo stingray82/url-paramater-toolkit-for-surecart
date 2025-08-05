@@ -672,7 +672,7 @@ add_action('wp_enqueue_scripts', 'rup_sc_instant_checkout_price_script');
 
 // MainWP Icon Filter
 
-/*
+
 add_filter('mainwp_child_stats_get_plugin_info', function($info, $slug) {
 
     if ('url-parameters-toolkit/url-parameters-toolkit.php' === $slug) {
@@ -683,4 +683,3 @@ add_filter('mainwp_child_stats_get_plugin_info', function($info, $slug) {
 
 }, 10, 2);
 
-*/
