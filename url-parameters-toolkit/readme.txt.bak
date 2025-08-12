@@ -4,7 +4,7 @@ Donate link: https://reallyusefulplugins.com/donate
 Tags: surecart, url, Paramaters, ecommerce
 Requires at least: 6.5
 Tested up to: 6.8.2
-Stable tag: 1.5.1
+Stable tag: 1.5.2
 Requires PHP: 8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -27,6 +27,9 @@ Add URL Paramater Option(s) to SureCart
 Yes Url Paramaters Toolkit for SureCart is a Free Plugin
  
 == Changelog == 
+= 1.5.2 5 August 2025 =
+Fixed: Comment out WP Icon Filter which is causing issues in latest MainWP
+
 = 1.5.1 01 Aug 2025 =
 Fix: MainWP Dashboard Icon Filter
 
